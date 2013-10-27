@@ -1,7 +1,7 @@
 #include "rgbrfid2.h"
 #include <SoftwareSerial.h>
 
-#define DEBUG false
+#define DEBUG true
 SoftwareSerial pinSerial(RX_PIN, TX_PIN);
 
 // Current and target colors
@@ -165,27 +165,29 @@ void processKey(char* key)
 {
   noDiskCount = 0;
   
-  if(strncmp(key, "0106932AA7", 10) == 0)
+  if(strncmp(key, "01068DBEF2", 10) == 0)
   {
     postMessage(BLACK);
   }
-  else if(strncmp(key, "01068DC711", 10) == 0)
+  else if(strncmp(key, "01068DC0BD", 10) == 0)
   {
     postMessage(WHITE);
   }
-  else if(strncmp(key, "0107759F45", 10) == 0)
+  else if(strncmp(key, "01068DF0A7", 10) == 0)
   {
     postMessage(RED);
   }
-  else if(strncmp(key, "010775A609", 10) == 0)
+  else if(strncmp(key, "01068DC008", 10) == 0)
+  {
+    postMessage(BLUE);
+  }
+  else if(strncmp(key, "01068DBCE1", 10) == 0)
   {
     postMessage(GREEN);
   }
-  else if(strncmp(key, "1234567890", 10) == 0)
+  else if(strncmp(key, "01068DD774", 10) == 0)
   {
-  }
-  else if(strncmp(key, "0987654321", 10) == 0)
-  {
+    postMessage(YELLOW);
   }
 }
 
@@ -305,6 +307,18 @@ void readQueue()
       case GREEN:
         targetColor[0] = 0;
         targetColor[1] = 255;
+        targetColor[2] = 0;
+      break;
+      
+      case BLUE:
+        targetColor[0] = 0;
+        targetColor[1] = 0;
+        targetColor[2] = 255;
+      break;
+      
+      case YELLOW:
+        targetColor[0] = 255;
+        targetColor[1] = 200;
         targetColor[2] = 0;
       break;
       
