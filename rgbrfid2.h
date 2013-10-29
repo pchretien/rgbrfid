@@ -1,11 +1,12 @@
 // IO pin definitions
-#define RFID_CONTROL_PIN 2
-#define RED_PIN 9
-#define GREEN_PIN 10
-#define BLUE_PIN 11
-#define READY_LED_PIN 13
+#define RFID_CONTROL_PIN 9
+#define RED_PIN 3
+#define GREEN_PIN 5
+#define BLUE_PIN 6
+#define READY_LED_PIN 7
 #define RX_PIN 8
 #define TX_PIN 1
+#define PIEZO_PIN 10
 
 // Serial protocol control bytes
 #define SERIAL_OPCODE 10
@@ -22,17 +23,19 @@
 
 enum QMessage
 {
-  NONE,
+  NONE,//0
   RED,
-  GREEN,
+  GREEN,//2
   BLUE,
-  YELLOW,
+  YELLOW,//4
   BLACK,
-  WHITE,
+  WHITE,//6
   RANDOM,
-  EMPTY
+  EMPTY//8
 };
 
+void play(QMessage msg);
 void postMessage(QMessage msg);
 QMessage getMessage();
+void rememberMessage(QMessage msg);
 

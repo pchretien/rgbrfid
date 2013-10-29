@@ -4,6 +4,9 @@
 #define DEBUG true
 SoftwareSerial pinSerial(RX_PIN, TX_PIN);
 
+boolean sound = false;
+QMessage lastThreeMessages[3] = {NONE, NONE, NONE};
+
 // Current and target colors
 unsigned char colorPins[3] = {RED_PIN, GREEN_PIN, BLUE_PIN};
 unsigned char currentColor[3] = {0,0,0};
@@ -29,6 +32,9 @@ void setup()
   
   // Ready lLED
   pinMode(READY_LED_PIN, OUTPUT);
+  
+  // Piezo speaker ...
+  pinMode(PIEZO_PIN, OUTPUT);
   
   activateRFID();
 
@@ -67,14 +73,13 @@ void loop()
       
       noDiskCount = 0;
       postMessage(EMPTY);
+      
+      checkForTargets();
     }
   }
   
   readQueue();
-  
   setLEDs();
-  
-  checkForTargets();
 }
 
 void Debug(char* prefix, char* msg)
@@ -157,7 +162,6 @@ int readSerial(char* key)
     } 
   } 
   
-  deactivateRFID();
   return 0;
 }
 
@@ -235,13 +239,27 @@ void setReadyLED(QMessage msg)
     digitalWrite(READY_LED_PIN, LOW);   
 }
 
+unsigned long alternate = 0;
 void setLEDs()
 {  
   if(cycles % modulo != 0)
     return;
     
-  for(int i=0; i<3; i++)
+  if(modulo == FAST_FADE)
   {
+    for(int i=0; i<3; i++)
+    {
+      if(currentColor[i] < targetColor[i])
+        currentColor[i] += 1;
+      else if(currentColor[i] > targetColor[i])
+        currentColor[i] -= 1;
+        
+      analogWrite(colorPins[i], currentColor[i]);
+    }
+  }
+  else
+  {
+    int i = alternate++ % 3;
     if(currentColor[i] < targetColor[i])
       currentColor[i] += 1;
     else if(currentColor[i] > targetColor[i])
@@ -283,18 +301,24 @@ void readQueue()
         targetColor[0] = random(255);
         targetColor[1] = random(255);
         targetColor[2] = random(255);
-        
-        continue;
       }
+      
+      continue;
     }
     
     if(msg == lastMessage)
       continue;
       
+    // We have a new command ...
+    play(msg);
+    rememberMessage(msg);
+      
     modulo = FAST_FADE;
       
     // Turn ON the LED if there is no disk in the lamp
     setReadyLED(msg);
+    
+    checkSpecialMessages();
         
     switch(msg)
     {
@@ -343,5 +367,168 @@ void readQueue()
     }
     
     lastMessage = msg;
+  }
+}
+
+void playTone(int tone, int duration) 
+{
+  for (long i = 0; i < duration * 1000L; i += tone * 2) 
+  {
+    digitalWrite(PIEZO_PIN, HIGH);
+    delayMicroseconds(tone);
+    
+    digitalWrite(PIEZO_PIN, LOW);
+    delayMicroseconds(tone);
+  }
+}
+
+void playNote(char note, int duration) 
+{
+  char names[] = { 'c', 'd', 'e', 'f', 'g', 'a', 'b', 'C' };
+  int tones[] = { 1915, 1700, 1519, 1432, 1275, 1136, 1014, 956 };
+
+  // play the tone corresponding to the note name
+  for (int i = 0; i < 8; i++) 
+  {
+    if (names[i] == note) 
+    {
+      playTone(tones[i], duration);
+    }
+  }
+}
+
+void play(QMessage msg) 
+{
+  if(!sound)
+    return;
+    
+  int length = 2; // the number of notes
+  char notes[] = "cC "; // a space represents a rest
+  int beats[] = { 1, 1 };
+  int tempo = 100;
+
+  if(msg == EMPTY)
+  {
+    notes[0] = 'C';
+    notes[1] = 'c';
+  }
+  
+  for (int i = 0; i < length; i++) 
+  {
+    if (notes[i] == ' ') 
+    {
+      delay(beats[i] * tempo); // rest
+    } 
+    else 
+    {
+      playNote(notes[i], beats[i] * tempo);
+    }
+
+    // pause between notes
+    delay(tempo / 2); 
+  }
+}
+
+void resetLastThreeMessages()
+{
+  lastThreeMessages[2] = NONE;
+  lastThreeMessages[1] = NONE;
+  lastThreeMessages[0] = NONE;
+}
+
+void rememberMessage(QMessage msg)
+{
+  if(msg == EMPTY || msg == RANDOM)
+    return;
+    
+  lastThreeMessages[2] = lastThreeMessages[1];
+  lastThreeMessages[1] = lastThreeMessages[0];
+  lastThreeMessages[0] = msg;
+  
+  if(DEBUG)
+  {
+    Serial.print(lastThreeMessages[0]);
+    Serial.print(" ");
+    Serial.print(lastThreeMessages[1]);
+    Serial.print(" ");
+    Serial.println(lastThreeMessages[2]);
+  }
+}
+
+void checkSpecialMessages()
+{
+  if(lastThreeMessages[0] == BLACK && lastThreeMessages[1] == BLACK && lastThreeMessages[2] == BLACK)
+  {
+    sound = false;
+    resetLastThreeMessages();
+  }
+  
+  if(lastThreeMessages[0] == WHITE && lastThreeMessages[1] == WHITE && lastThreeMessages[2] == WHITE)
+  {
+    sound = true;
+    resetLastThreeMessages();
+  }
+  
+  if(lastThreeMessages[0] == BLUE && lastThreeMessages[1] == GREEN && lastThreeMessages[2] == RED)
+  {
+    for(int i=0; i<6; i++)
+    {      
+      analogWrite(colorPins[0], 255);
+      analogWrite(colorPins[1], 0);
+      analogWrite(colorPins[2], 0);
+      delay(111);
+      
+      analogWrite(colorPins[0], 0);
+      analogWrite(colorPins[1], 255);
+      analogWrite(colorPins[2], 0);
+      delay(111);
+
+      analogWrite(colorPins[0], 0);
+      analogWrite(colorPins[1], 0);
+      analogWrite(colorPins[2], 255);
+      delay(111);
+    }
+    
+    resetLastThreeMessages();    
+  }
+  
+  if(lastThreeMessages[0] == RED && lastThreeMessages[1] == GREEN && lastThreeMessages[2] == BLUE)
+  {
+    for(int i=0; i<3; i++)
+    {
+      analogWrite(colorPins[0], 0);
+      analogWrite(colorPins[1], 0);
+      analogWrite(colorPins[2], 0);
+      for(int j=0; j<90; j++)
+      {
+        analogWrite(colorPins[i], j);
+        delay(40);
+      }
+      for(int j=90; j>0; j--)
+      {
+        analogWrite(colorPins[i], j);
+        delay(40);
+      }
+    }
+    
+    resetLastThreeMessages(); 
+  }
+  
+  if(lastThreeMessages[0] == BLACK && lastThreeMessages[1] == GREEN && lastThreeMessages[2] == RED)
+  {
+    for(int i=0; i<100; i++)
+    {      
+      analogWrite(colorPins[0], 255);
+      analogWrite(colorPins[1], 255);
+      analogWrite(colorPins[2], 255);
+      delay(30);
+      
+      analogWrite(colorPins[0], 0);
+      analogWrite(colorPins[1], 0);
+      analogWrite(colorPins[2], 0);
+      delay(30);
+    }
+    
+    resetLastThreeMessages();    
   }
 }
