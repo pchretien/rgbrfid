@@ -455,6 +455,90 @@ void rememberMessage(QMessage msg)
   }
 }
 
+void strobe()
+{
+  for(int i=0; i<100; i++)
+  {      
+    analogWrite(colorPins[0], 255);
+    analogWrite(colorPins[1], 255);
+    analogWrite(colorPins[2], 255);
+    delay(30);
+    
+    analogWrite(colorPins[0], 0);
+    analogWrite(colorPins[1], 0);
+    analogWrite(colorPins[2], 0);
+    delay(30);
+  }
+}
+
+void flashColors()
+{
+  for(int i=0; i<24; i++)
+  {      
+    analogWrite(colorPins[0], 255);
+    analogWrite(colorPins[1], 0);
+    analogWrite(colorPins[2], 0);
+    delay(111);
+    
+    analogWrite(colorPins[0], 0);
+    analogWrite(colorPins[1], 255);
+    analogWrite(colorPins[2], 0);
+    delay(111);
+
+    analogWrite(colorPins[0], 0);
+    analogWrite(colorPins[1], 0);
+    analogWrite(colorPins[2], 255);
+    delay(111);
+  }
+}
+
+void fadeInFadeOut()
+{
+  for(int i=0; i<6; i++)
+  {
+    analogWrite(colorPins[0], 0);
+    analogWrite(colorPins[1], 0);
+    analogWrite(colorPins[2], 0);
+    for(int j=0; j<80; j++)
+    {
+      analogWrite(colorPins[i%3], j);
+      delay(30);
+    }
+    for(int j=80; j>0; j--)
+    {
+      analogWrite(colorPins[i%3], j);
+      delay(30);
+    }
+  }
+}
+
+void thomasTheme()
+{
+  // init
+  analogWrite(colorPins[0], 0);
+  analogWrite(colorPins[1], 0);
+  analogWrite(colorPins[2], 0);
+    
+  int increment= 12;
+  int duration = 250;
+  char notes[8] = {'c','d','e','f','g','a','b','C'};
+  
+  for(int i=0; i<3; i++)
+  {
+    for(int j=0; j<8;j++)
+    {
+      playNote(notes[j], duration);
+      analogWrite(colorPins[i], (j+1)*increment);
+    }
+    
+    for(int j=6; j>=0;j--)
+    {
+      playNote(notes[j], duration);
+      analogWrite(colorPins[i], (j+1)*increment);
+    }
+  }
+}
+
 void checkSpecialMessages()
 {
   if(lastThreeMessages[0] == BLACK && lastThreeMessages[1] == BLACK && lastThreeMessages[2] == BLACK)
@@ -471,64 +555,25 @@ void checkSpecialMessages()
   
   if(lastThreeMessages[0] == BLUE && lastThreeMessages[1] == GREEN && lastThreeMessages[2] == RED)
   {
-    for(int i=0; i<6; i++)
-    {      
-      analogWrite(colorPins[0], 255);
-      analogWrite(colorPins[1], 0);
-      analogWrite(colorPins[2], 0);
-      delay(111);
-      
-      analogWrite(colorPins[0], 0);
-      analogWrite(colorPins[1], 255);
-      analogWrite(colorPins[2], 0);
-      delay(111);
-
-      analogWrite(colorPins[0], 0);
-      analogWrite(colorPins[1], 0);
-      analogWrite(colorPins[2], 255);
-      delay(111);
-    }
-    
+    flashColors();    
     resetLastThreeMessages();    
   }
   
   if(lastThreeMessages[0] == RED && lastThreeMessages[1] == GREEN && lastThreeMessages[2] == BLUE)
   {
-    for(int i=0; i<3; i++)
-    {
-      analogWrite(colorPins[0], 0);
-      analogWrite(colorPins[1], 0);
-      analogWrite(colorPins[2], 0);
-      for(int j=0; j<90; j++)
-      {
-        analogWrite(colorPins[i], j);
-        delay(40);
-      }
-      for(int j=90; j>0; j--)
-      {
-        analogWrite(colorPins[i], j);
-        delay(40);
-      }
-    }
-    
+    fadeInFadeOut();    
     resetLastThreeMessages(); 
   }
   
   if(lastThreeMessages[0] == BLACK && lastThreeMessages[1] == GREEN && lastThreeMessages[2] == RED)
   {
-    for(int i=0; i<100; i++)
-    {      
-      analogWrite(colorPins[0], 255);
-      analogWrite(colorPins[1], 255);
-      analogWrite(colorPins[2], 255);
-      delay(30);
-      
-      analogWrite(colorPins[0], 0);
-      analogWrite(colorPins[1], 0);
-      analogWrite(colorPins[2], 0);
-      delay(30);
-    }
-    
+    strobe();    
+    resetLastThreeMessages();    
+  }
+  
+  if(lastThreeMessages[0] == YELLOW && lastThreeMessages[1] == BLUE && lastThreeMessages[2] == RED)
+  {
+    thomasTheme();    
     resetLastThreeMessages();    
   }
 }
